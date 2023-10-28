@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "meteo-des-loggias",
+  "private_key_id": "b6c9776b8459a450c8e9721283dd982437c1711e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDE3Zi52lxlTLju\nDtHhCWQ5fGqwSb8XFEhlmfYIT308GhdGOE2xWHwJUh78LBYeGObyGqCApA6Mf5Xh\nPsF2ocYg4PHeO7J5CK7HOLBwW19HWmmVscyMENn88VW/9HqdzT+036emZyzW9ABE\nwnoEQPlZ1PYVqDF9rL1baxh46cmC+6rsp1uxrNV/z7gs9bW208Dao83tyeZFOcep\nsH5xhiTxH8Xofa44c8tXPVjQPh+rVvXLfH1CZFpzTGdZd6eN+E0xAbNdoHUNCfsm\nnIF1znR/ejHvTgWwHZX0tDPRLJ+54T7NOuEwglgZZnKiX5C6gxMZiElAXzdLE9Yv\nx+OVNer/AgMBAAECggEAEt3tOqE/lKJsi2gWhjDOZFH/ruMfx1hKyJifmH6hu8ZW\nWlpKsTHlOpweWxWQjb7eN0VaV38hjnvVwzoD9C4fMlx3NvtVUz3ZSOoubVOHHJar\neCILk+reMVx3AYgDzlFy3GSeM8I/Ql8tEr8+pAoOu6S/bCZBOVBPmiN35h1QZ4Hd\np847UnEggVRjwxBYHpSF9btuhVQ+CIEykfks2A2SlL84sYaY/soWKQZO/9Jy8Xar\n8256PnLeeICSclFhvlxKtX9n9wzrN7eKaNP5+9zGPhBbGZDYcUO0y/sbGPzxfkv/\nXX7dzHcQ9Ro42QCApc16L38G2QcsVuZXRzDRb9b9IQKBgQDmoVB3NjZ2ODHm1+3F\n+Nxp13Cc9fZepLcpHP7ZLj9UCu+f8Z96rXGP4u6HqDsRkffBGhwBabRCaGfbM/QJ\ntP0hOmU5p5sSsDubK+NrdXCRutakOum61NdYnnA4cBtRDCF66YUmU523f6syS5+Y\noCHpCjTKI64A+RlEeRxAYy1MIQKBgQDahXPhZ5nuAXRLUZbe3TjyUF/mejCUy69V\n6sFpwlGcle2gGFwlQviFJFVWZFLbZgjlP+E6LhY3+39re5VmCC20AvhXPM8I7NSz\nc8SfILgDWswrf80ocdomtwY/1jUDTkBVJdTwdEHARSY9HdfLHrOiN99k8U9v2vLW\nj5Xk6atTHwKBgQDXJIS7sIb9oU5r2eKlW5HB6ofS5F//yghTAgl67/mDnPAMdIoh\nFstpPnjlc7ommdRU/tZBOyo9CMhZZA2zQHMiHCdxsTioJl50UmzEQbnROEoiyhJf\nh02cDbEB9RKGeJqC3nSnXDk0hJRfRsyKxFbd3feA2efoYHeBuLjyF5KaAQKBgC06\n5DJqnDzcRjL0z1KP3aKiKkdtUTLrOf6BmckHNJdBnS6+/AumYgRE8fjwyQmqg/rX\njwnY0jaCMuyPZuv4k2UoHDkKWBwT0S7XroH1ZsEjARGb4V4Wur26smtyLgTiJIS7\nUOj4V0exyGlsDOd5EltoTy/4lqWjXxI0JCV+jDynAoGBAJnsfh7/rq51jL/76E0c\nYPUSZT9EKKFC4MgVcjCgBEBG9+2Bbouo8dg5eClndoTuXDAEDF2blaadmbVvjTGO\n71ntzjakSpQocZFd4JVA41njDUsXwu7Kn4LnGUbQVQlV2ly0GCCMlLVs1F1ZPS5z\nmQZZkhAD8aCqaJvtIxv8TMk8\n-----END PRIVATE KEY-----\n",
+  "client_email": "sensors-sa@meteo-des-loggias.iam.gserviceaccount.com",
+  "client_id": "111376997775945192314",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sensors-sa%40meteo-des-loggias.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
