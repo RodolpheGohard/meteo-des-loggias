@@ -14,6 +14,7 @@ OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 
 const int BAUDS = 9600;
+// TODO: import these from ENV
 const char *WIFI_SSID = "SFR_D228";
 const char *WIFI_PASSWORD = "8cjt87qkyc7jme26sceu";
 const int WIFI_POLL_DELAY = 500;
@@ -30,12 +31,12 @@ void setup()
   if (!aht.begin())
   {
     Serial.println("Could not find AHT? Check wiring");
-    while (1)
-      delay(10);
+    return;
+  } else {
+    Serial.println("AHT10 or AHT20 found");
   }
-  Serial.println("AHT10 or AHT20 found");
-
-  Serial.print("Connection en cours");
+  
+  Serial.print("Connection au WiFi en cours");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) // tant que l'esp n'est pas connecté au réseau on attends
   {
@@ -48,17 +49,22 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
-// const char CF_FINGERPRINT[] PROGMEM = "AB 24 A8 96 AB 9F E1 A0 D2 6D 56 08 87 AA 8D 5C 17 08 A6 C4";
+// TODO: this should definitely be taken from env or even through an update system 
 const char CF_FINGERPRINT[] PROGMEM = "93 7C D5 0E C8 8E F7 CC 1F 1E 60 06 C7 F4 D5 FA 13 86 25 91";
 const char *CF_HOST = "europe-west1-meteo-des-loggias.cloudfunctions.net";
-//const char *CF_HOST = "www.iana.org";
 const int CF_PORT = 443;
 const char *CF_PATH = "/register-sensors-data";
 
-//const int HTTPS_POLL_DELAY = 100;
-//const int HTTPS_POLL_MAX_RETRIES = 1;
-
 const int MAIN_LOOP_DELAY = 60000;
+
+struct SensorsReading
+{
+  float temperature1;
+  float temperature2;
+  float humidity;
+  int luminosity;
+};
+
 
 void sendData(float temperature1, float temperature2, float humidity, int luminosity)
 {
@@ -126,29 +132,52 @@ void sendData(float temperature1, float temperature2, float humidity, int lumino
   Serial.println("closing connection");
 }
 
+
+void sendReadings(SensorsReading[] readings, int size) {
+  if (connectToServer(&client)) {
+    // Now we need to generate potentially large payload generated on the fly
+    // HTTP requires to send ContentLength in advance, so it has to be generated and sized beforehand -- sucks
+    // Alternative is to use chunked encoding. Not nice but eh.
+    // Or maybe protobuf ?
+    // https://stackoverflow.com/questions/33264731/whats-the-best-way-to-send-http-if-content-length-is-only-approximate
+  }
+
+}
+
+const int READINGS_BUFFER_SIZE = 20;
+SensorsReading readings[READINGS_BUFFER_SIZE];
+const int readingsIndex = 0;
+
 void loop()
 {
+  SensorsReading sensorsReading;
+
   // Temperature
   sensors.requestTemperatures();
   float temperatureC = sensors.getTempCByIndex(0);
-  //Serial.print(temperatureC);
-  //Serial.println("ºC");
+  sensorsReading.temperature1 = temperatureC;
 
   // Temperature & humidity
   sensors_event_t humidity, temp;
   aht.getEvent(&humidity, &temp); // populate temp and humidity objects with fresh data
-  //Serial.print("Temperature: ");
-  //Serial.print(temp.temperature);
-  //Serial.println(" degrees C");
-  //Serial.print("Humidity: ");
-  //Serial.print(humidity.relative_humidity);
-  //Serial.println("% rH");
+  sensorsReading.temperature1 = temp.temperature;
+  sensorsReading.humidity = humidity.relative_humidity
 
+  // Luminosity
   int lux = analogRead(A0);
-  //Serial.print("Luminosity");
-  //Serial.println(lux);
-
+  sensorsReading.luminosity = lux;
+  
+  readings[readingsIndex] = sensorsReading;
+  readings++;
+  if (readingsIndex == READINGS_BUFFER_SIZE) {
+    // reset buffer and send data
+    sendReadings(readings);
+    readingsIndex = 0;
+  }
   sendData(temperatureC, temp.temperature, humidity.relative_humidity, lux);
+
+  // Wait for our next reading
+  // TODO: some kind of deep sleep power saving stuff here ?
   Serial.print("Waiting ");
   Serial.print(MAIN_LOOP_DELAY);
   Serial.println(" Seconds");
