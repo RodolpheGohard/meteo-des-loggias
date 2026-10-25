@@ -65,7 +65,16 @@ AppConfig loadConfig() {
         cfg.fingerprint = readString(EEPROM_OFF_FP, EEPROM_MAX_FP);
     }
 
+    cfg.ecoMode = (EEPROM.read(EEPROM_OFF_ECO) == 1);
+
     return cfg;
+}
+
+void saveEcoMode(bool eco) {
+    EEPROM.write(0, EEPROM_MAGIC_0);
+    EEPROM.write(1, EEPROM_MAGIC_1);
+    EEPROM.write(EEPROM_OFF_ECO, eco ? 1 : 0);
+    EEPROM.commit();
 }
 
 void saveFingerprint(const String& fp) {

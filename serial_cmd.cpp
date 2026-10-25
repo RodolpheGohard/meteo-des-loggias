@@ -3,8 +3,6 @@
 #include "storage.h"
 #include <ESP8266WiFi.h>
 
-extern bool gPaused;
-
 static const char* const VALID_DEVICE_NAMES[] = {
     "ESP8266-UNKNOWN", // valeur par défaut
     "ESP8266", // loggia du salon - sic
@@ -31,8 +29,9 @@ static void printHelp() {
     Serial.println(F("  GET_DEVICE               - affiche le nom du device"));
     Serial.println(F("  SET_DEVICE <name>        - change le nom (voir LIST_VALID_DEVICES)"));
     Serial.println(F("  LIST_VALID_DEVICES       - liste les noms valides"));
-    Serial.println(F("  PAUSE                    - suspend l'envoi HTTP"));
-    Serial.println(F("  RESUME                   - reprend l'envoi HTTP"));
+    Serial.println(F("  ECO ON                   - active le deep sleep (persistant)"));
+    Serial.println(F("  ECO OFF                  - desactive le deep sleep, module toujours eveille (defaut)"));
+    Serial.println(F("  ECO                      - affiche l'etat du mode ECO"));
     Serial.println(F("  STATUS                   - etat complet"));
     Serial.println(F("  HELP                     - cette aide"));
 }
@@ -115,13 +114,19 @@ void handleSerialCommands(AppConfig& cfg) {
             Serial.print(F("  ")); Serial.println(VALID_DEVICE_NAMES[i]);
         }
 
-    } else if (line == F("PAUSE")) {
-        gPaused = true;
-        Serial.println(F("OK: envoi HTTP suspendu"));
+    } else if (line == F("ECO ON")) {
+        saveEcoMode(true);
+        cfg.ecoMode = true;
+        Serial.println(F("OK: mode ECO active (deep sleep des que le Serial est inactif)"));
 
-    } else if (line == F("RESUME")) {
-        gPaused = false;
-        Serial.println(F("OK: envoi HTTP repris"));
+    } else if (line == F("ECO OFF")) {
+        saveEcoMode(false);
+        cfg.ecoMode = false;
+        Serial.println(F("OK: mode ECO desactive (module toujours eveille)"));
+
+    } else if (line == F("ECO")) {
+        Serial.print(F("ECO: "));
+        Serial.println(cfg.ecoMode ? F("actif") : F("inactif"));
 
     } else if (line == F("STATUS")) {
         Serial.println(F("--- STATUS ---"));
@@ -130,7 +135,7 @@ void handleSerialCommands(AppConfig& cfg) {
         Serial.println(WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : F("deconnecte"));
         Serial.print(F("Device  : ")); Serial.println(cfg.deviceName);
         Serial.print(F("URL     : ")); Serial.println(cfg.postUrl);
-        Serial.print(F("POST    : ")); Serial.println(gPaused ? F("PAUSE") : F("actif"));
+        Serial.print(F("Eco     : ")); Serial.println(cfg.ecoMode ? F("actif (deep sleep hors session Serial)") : F("inactif (toujours eveille)"));
         Serial.print(F("Heap    : ")); Serial.print(ESP.getFreeHeap()); Serial.println(F(" octets"));
 
     } else if (line == F("HELP")) {

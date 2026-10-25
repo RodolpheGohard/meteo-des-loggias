@@ -17,7 +17,8 @@ OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 
 AppConfig gConfig;
-bool gPaused = false;
+unsigned long gLastPostMs = 0;
+unsigned long gLastSerialMs = 0; // dernier octet recu sur le Serial
 
 
 void setup()
@@ -46,13 +47,19 @@ void setup()
   connectWifi(gConfig);
 
   digitalWrite(LED_BUILTIN, HIGH);
+
+  measureAndSend();
+  gLastPostMs = millis();
+  if (gConfig.ecoMode) {
+    enterConfigWindowOrSleep();
+  }
 }
 
 static void connectWifi(const AppConfig& cfg) {
     if (WiFi.status() == WL_CONNECTED) return;
 
     Serial.printf("[WiFi] Connexion a %s", cfg.wifiSsid.c_str());
-    WiFi.mode(WIFI_STA); // ça fait quoi ??
+    WiFi.mode(WIFI_STA); // Désactiver scan inutile
     WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
 
     for (int i = 0; i < WIFI_RETRY_COUNT && WiFi.status() != WL_CONNECTED; i++) {
@@ -72,9 +79,6 @@ static void connectWifi(const AppConfig& cfg) {
 const char *CF_HOST = "europe-west1-meteo-des-loggias.cloudfunctions.net";
 const int CF_PORT = 443;
 const char *CF_PATH = "/register-sensors-data";
-const int MAIN_LOOP_DELAY = 5000;
-
-static unsigned long gLastPostTime = 0;
 
 void sendData(const String& deviceName, float temperature1, float temperature2, float humidity, int luminosity)
 {
@@ -163,42 +167,76 @@ void sendData(const String& deviceName, float temperature1, float temperature2, 
   Serial.println("closing connection");
 }
 
+// Lit les capteurs et envoie les donnees.
+void measureAndSend()
+{
+  sensors.requestTemperatures();
+  float temperatureC = sensors.getTempCByIndex(0);
+
+  sensors_event_t humidity, temp;
+  aht.getEvent(&humidity, &temp); // populate temp and humidity objects with fresh data
+
+  int lux = analogRead(A0);
+
+  sendData(gConfig.deviceName, temperatureC, temp.temperature, humidity.relative_humidity, lux);
+}
+
+// Dort le temps qu'il reste avant le prochain envoi : si la carte est restee
+// eveillee (session Serial), le deep sleep est raccourci pour garder la cadence.
+void goToDeepSleep()
+{
+  uint64_t elapsedUs = (uint64_t)(millis() - gLastPostMs) * 1000ULL;
+  uint64_t sleepUs = elapsedUs < DEEP_SLEEP_INTERVAL_US ? DEEP_SLEEP_INTERVAL_US - elapsedUs : 1000000ULL;
+  Serial.printf("[Sleep] Extinction WiFi, deep sleep %lu ms\n", (unsigned long)(sleepUs / 1000));
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  Serial.flush();
+  ESP.deepSleep(sleepUs);
+}
+
+// Mode ECO : ecoute le Serial quelques secondes apres l'envoi. Un octet recu
+// (commande, ou simple retour a la ligne envoye par la page de config) signifie
+// que quelqu'un est connecte : pas de deep sleep, on continue dans loop() qui
+// s'endormira quand le Serial redeviendra silencieux. Sinon : deep sleep.
+void enterConfigWindowOrSleep()
+{
+  Serial.printf("[Serial] Fenetre d'ecoute (%lu ms) - envoyez un octet pour rester eveille\n", SERIAL_WINDOW_MS);
+  unsigned long windowStart = millis();
+  while (millis() - windowStart < SERIAL_WINDOW_MS) {
+    if (Serial.available()) {
+      gLastSerialMs = millis();
+      Serial.println(F("[Sleep] Serial actif : mode ECO suspendu"));
+      return;
+    }
+    delay(20);
+  }
+
+  goToDeepSleep();
+}
+
 void loop()
 {
+  if (Serial.available()) {
+    gLastSerialMs = millis();
+  }
+
   if (WiFi.status() != WL_CONNECTED) {
       connectWifi(gConfig);
   }
 
   handleSerialCommands(gConfig);
 
-  // Temperature
-  sensors.requestTemperatures();
-  float temperatureC = sensors.getTempCByIndex(0);
-  //Serial.print(temperatureC);
-  //Serial.println("ºC");
-
-  // Temperature & humidity
-  sensors_event_t humidity, temp;
-  aht.getEvent(&humidity, &temp); // populate temp and humidity objects with fresh data
-  //Serial.print("Temperature: ");
-  //Serial.print(temp.temperature);
-  //Serial.println(" degrees C");
-  //Serial.print("Humidity: ");
-  //Serial.print(humidity.relative_humidity);
-  //Serial.println("% rH");
-
-  int lux = analogRead(A0);
-  //Serial.print("Luminosity");
-  //Serial.println(lux);
-
-
-  unsigned long now = millis();
-  if (!gPaused && now - gLastPostTime >= POST_INTERVAL_MS) {
-      gLastPostTime = now;
-      sendData(gConfig.deviceName, temperatureC, temp.temperature, humidity.relative_humidity, lux);
+  if (millis() - gLastPostMs >= POST_INTERVAL_MS) {
+    gLastPostMs = millis();
+    measureAndSend();
   }
-  Serial.print("Waiting ");
-  Serial.print(MAIN_LOOP_DELAY);
-  Serial.println(" ms");
-  delay(MAIN_LOOP_DELAY);
+
+  // ECO + plus personne sur le Serial : on se rendort.
+  if (gConfig.ecoMode && millis() - gLastSerialMs >= SERIAL_IDLE_TIMEOUT_MS) {
+    Serial.println(F("[Sleep] Serial inactif : retour au deep sleep"));
+    goToDeepSleep();
+    return;
+  }
+
+  delay(50);
 }

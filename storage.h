@@ -12,7 +12,8 @@
 //   [302]    : longueur device name (uint8_t)
 //   [303-334]: device name null-terminated (max 32 chars)
 //   [335]    : longueur fingerprint (uint8_t)
-//   [336-430]: fingerprint null-terminated (max 95 chars)
+//   [336-430]: fingerprint null-terminated (max 95 chars, legacy: plus utilise)
+//   [431]    : mode ECO (1 = deep sleep actif, toute autre valeur = desactive)
 
 #define EEPROM_SIZE              512
 #define EEPROM_MAGIC_0           0xAB
@@ -32,6 +33,7 @@
 #define EEPROM_OFF_FP_LEN        335
 #define EEPROM_OFF_FP            336
 #define EEPROM_MAX_FP            96
+#define EEPROM_OFF_ECO           431
 
 struct AppConfig {
     String wifiSsid;
@@ -39,6 +41,7 @@ struct AppConfig {
     String postUrl;
     String deviceName;
     String fingerprint;
+    bool   ecoMode = false;
 };
 
 void initEEPROM();
@@ -48,3 +51,4 @@ void resetPostUrl();
 void saveWifiCredentials(const String& ssid, const String& pass);
 void saveDeviceName(const String& name);
 void saveFingerprint(const String& fp);
+void saveEcoMode(bool eco);

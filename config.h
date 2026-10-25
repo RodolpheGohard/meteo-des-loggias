@@ -18,9 +18,12 @@
 #define DEFAULT_CF_FINGERPRINT "F7:5C:51:D6:8E:E9:CE:0B:48:6A:85:52:EC:A2:CA:4C:12:3D:CD:F2:17:7C:AB:07:AF:87:4F:A5:24:CC:FF:00"
 
 // --- Timing ---
-#define POST_INTERVAL_MS    120000UL  // intervalle entre deux POST (ms)
-#define WIFI_RETRY_COUNT    2
-#define WIFI_RETRY_DELAY_MS 1000
+#define POST_INTERVAL_MS       120000UL     // intervalle entre deux POST hors mode ECO (ms) - 2 min
+#define DEEP_SLEEP_INTERVAL_US 120000000UL  // mode ECO : intervalle entre deux cycles mesure+envoi, deep sleep (µs) - 2 min
+#define SERIAL_WINDOW_MS       5000UL       // mode ECO : fenetre d'ecoute Serial apres le 1er envoi ; un octet recu = pas de deep sleep
+#define SERIAL_IDLE_TIMEOUT_MS 30000UL      // mode ECO : sans octet recu pendant ce delai, la session Serial est terminee -> deep sleep
+#define WIFI_RETRY_COUNT       2
+#define WIFI_RETRY_DELAY_MS    1000
 
 // --- Serial ---
 #define SERIAL_BAUD 9600

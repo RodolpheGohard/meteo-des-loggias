@@ -60,7 +60,6 @@
       <option>74880</option><option>115200</option>
     </select>
   </label>
-  <label class="chk"><input type="checkbox" id="autoPause" checked> PAUSE auto à la connexion</label>
   <span id="state" class="badge off">déconnecté</span>
   <button id="btnConnect" class="primary">Connecter</button>
   <button id="btnDisconnect" disabled>Déconnecter</button>
@@ -77,28 +76,28 @@
       <dt>SSID</dt><dd id="i-ssid">—</dd>
       <dt>WiFi</dt><dd id="i-wifi">—</dd>
       <dt>URL</dt><dd id="i-url">—</dd>
-      <dt>POST</dt><dd id="i-post">—</dd>
-      <dt>Sleep</dt><dd id="i-sleep">—</dd>
+      <dt>Mode ECO</dt><dd id="i-eco">—</dd>
       <dt>Heap</dt><dd id="i-heap">—</dd>
     </dl>
     <div class="row" style="margin-top:10px">
       <button data-cmd="STATUS" class="need-conn">Identifier / rafraîchir</button>
       <button id="btnReset" class="need-conn danger" title="Pulse DTR/RTS pour redémarrer la carte">Reset carte</button>
     </div>
-    <p class="hint">Les informations viennent de <code>STATUS</code>, <code>GET_*</code> et du port USB. Le firmware est en deep sleep : la carte n'écoute que quelques secondes après chaque envoi, d'où la PAUSE automatique.</p>
+    <p class="hint">Les informations viennent de <code>STATUS</code>, <code>GET_*</code> et du port USB. En mode ECO, la carte ne dort pas tant que cette page est connectée : un retour à la ligne est envoyé toutes les 2 s pour signaler que le port est écouté.</p>
   </section>
 
   <section>
     <h2>Commandes</h2>
 
     <div class="group">
-      <h3>Cycle de vie</h3>
+      <h3>Mode ECO (deep sleep)</h3>
       <div class="row">
-        <button data-cmd="PAUSE" class="need-conn">PAUSE</button>
-        <button data-cmd="RESUME" class="need-conn">RESUME</button>
+        <button data-cmd="ECO ON" class="need-conn">ECO ON</button>
+        <button data-cmd="ECO OFF" class="need-conn">ECO OFF</button>
+        <button data-cmd="ECO" class="need-conn">ECO ?</button>
         <button data-cmd="HELP" class="need-conn">HELP</button>
       </div>
-      <p class="hint">PAUSE : reste éveillé, plus d'envoi. RESUME : un envoi puis reprise du deep sleep.</p>
+      <p class="hint">Par défaut : toujours éveillé. ECO ON : deep sleep entre deux envois, sauf quand le port série est écouté.</p>
     </div>
 
     <div class="group">
@@ -171,7 +170,8 @@
   const term = $('term');
 
   let port = null, writer = null, reader = null, readLoopDone = null, closing = false;
-  let curLine = null, curText = '', pendingParse = '';
+  let keepaliveTimer = null;
+  let curLine = null, curText = '';
   const logLines = [], history = []; let histIdx = -1;
 
   if (!('serial' in navigator)) $('unsupported').style.display = 'block';
@@ -213,8 +213,7 @@
   // ---------- Parsing des réponses du firmware ----------
   const FIELDS = [
     [/^URL\s*:\s*(.*)$/, 'i-url'], [/^SSID\s*:\s*(.*)$/, 'i-ssid'], [/^Device\s*:\s*(.*)$/, 'i-device'],
-    [/^WiFi\s*:\s*(.*)$/, 'i-wifi'], [/^POST\s*:\s*(.*)$/, 'i-post'],
-    [/^Sleep\s*:\s*(.*)$/, 'i-sleep'], [/^Heap\s*:\s*(.*)$/, 'i-heap'],
+    [/^WiFi\s*:\s*(.*)$/, 'i-wifi'], [/^Eco(?:\s*)?:\s*(.*)$/i, 'i-eco'], [/^Heap\s*:\s*(.*)$/, 'i-heap'],
   ];
   let inDeviceList = false; const devicesSeen = [];
   function parseLine(line) {
@@ -279,13 +278,20 @@
     writer = enc.writable.getWriter();
 
     readLoopDone = readLoop();
-    // Ouvrir le port reset généralement la carte (DTR) : PAUSE est mis en tampon
-    // et lu à l'ouverture de la fenêtre de configuration.
-    if ($('autoPause').checked) {
-      sys('PAUSE automatique + STATUS (la carte doit finir son cycle de boot, patientez quelques secondes)');
-      await send('PAUSE', true); await send('STATUS', true);
-    }
+    // Ouvrir le port reset généralement la carte (DTR). Les octets envoyés ici sont mis en
+    // tampon et vus par le firmware dans sa fenêtre d'écoute : ils annulent le deep sleep.
+    sys('Connexion : la carte peut redémarrer, patientez quelques secondes pour STATUS');
+    startKeepalive();
+    await send('STATUS', true);
   }
+
+  // Signale à la carte que le port est écouté (le firmware ignore les lignes vides).
+  function startKeepalive() {
+    stopKeepalive();
+    keepaliveTimer = setInterval(() => { writer?.write('\n').catch(() => {}); }, 2000);
+    writer.write('\n').catch(() => {});
+  }
+  function stopKeepalive() { clearInterval(keepaliveTimer); keepaliveTimer = null; }
 
   async function readLoop() {
     const dec = new TextDecoderStream();
@@ -299,7 +305,7 @@
   }
 
   async function disconnect(already) {
-    closing = true;
+    closing = true; stopKeepalive();
     try { if (reader && !already) await reader.cancel(); } catch {}
     try { if (readLoopDone && !already) await readLoopDone; } catch {}
     try { if (writer) { await writer.close(); } } catch {}
@@ -343,7 +349,7 @@
       await new Promise(r => setTimeout(r, 100));
       await port.setSignals({ dataTerminalReady: false, requestToSend: false });
       sys('Reset envoyé (RTS)');
-      if ($('autoPause').checked) { await send('PAUSE', true); await send('STATUS', true); }
+      await send('STATUS', true);
     } catch (e) { sys('Reset impossible : ' + e.message); }
   };
 
