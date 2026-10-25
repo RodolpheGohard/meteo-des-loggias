@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Météo des Loggias – Configurateur</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --panel:#fff; --text:#1d2330; --muted:#6a7385; --border:#d9dde5;
+    --accent:#2563eb; --accent-text:#fff; --ok:#15803d; --err:#b91c1c; --warn:#b45309;
+    --term-bg:#0f1420; --term-text:#d6deeb; --term-tx:#7dd3fc; --term-sys:#94a3b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10131a; --panel:#181d28; --text:#e4e8f0; --muted:#8b95a8; --border:#2b3344;
+            --accent:#3b82f6; --ok:#4ade80; --err:#f87171; --warn:#fbbf24; --term-bg:#0a0d14; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:14px 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+           background:var(--panel); border-bottom:1px solid var(--border); }
+  header h1 { font-size:17px; margin:0 auto 0 0; }
+  main { display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:16px; padding:16px; max-width:1300px; margin:auto; }
+  @media (max-width:850px){ main{grid-template-columns:1fr;} }
+  section { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px; }
+  section h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 10px; }
+  button { font:inherit; padding:6px 12px; border:1px solid var(--border); border-radius:6px; background:var(--panel);
+           color:var(--text); cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+  button.danger:hover:not(:disabled) { border-color:var(--err); color:var(--err); }
+  input, select { font:inherit; padding:6px 8px; border:1px solid var(--border); border-radius:6px;
+                  background:var(--bg); color:var(--text); min-width:0; }
+  .row { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; align-items:center; }
+  .row > input { flex:1; }
+  .grid { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0; }
+  .grid dt { color:var(--muted); } .grid dd { margin:0; word-break:break-all; font-family:ui-monospace,monospace; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; border:1px solid var(--border); }
+  .badge.on { color:var(--ok); border-color:var(--ok); } .badge.off { color:var(--muted); }
+  .hint { color:var(--muted); font-size:12px; margin:4px 0 0; }
+  .group { border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+  .group:first-of-type { border-top:0; padding-top:0; margin-top:0; }
+  .group h3 { font-size:13px; margin:0 0 6px; }
+  #term { background:var(--term-bg); color:var(--term-text); font:12.5px/1.4 ui-monospace,monospace; height:62vh;
+          overflow:auto; padding:10px; border-radius:6px; white-space:pre-wrap; word-break:break-all; }
+  #term .tx { color:var(--term-tx); } #term .sys { color:var(--term-sys); font-style:italic; }
+  #term .err { color:#fca5a5; } #term .ts { color:#5b6679; margin-right:6px; user-select:none; }
+  #unsupported { display:none; background:var(--err); color:#fff; padding:10px 20px; }
+  label.chk { display:flex; gap:5px; align-items:center; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div id="unsupported">Web Serial n'est pas disponible dans ce navigateur. Utilisez Chrome, Edge ou Opera (bureau), sur <code>https://</code> ou <code>localhost</code>.</div>
+
+<header>
+  <h1>🌦️ Météo des Loggias – Configurateur</h1>
+  <label class="chk">Baud
+    <select id="baud">
+      <option>9600</option><option>19200</option><option>38400</option><option>57600</option>
+      <option>74880</option><option>115200</option>
+    </select>
+  </label>
+  <label class="chk"><input type="checkbox" id="autoPause" checked> PAUSE auto à la connexion</label>
+  <span id="state" class="badge off">déconnecté</span>
+  <button id="btnConnect" class="primary">Connecter</button>
+  <button id="btnDisconnect" disabled>Déconnecter</button>
+</header>
+
+<main>
+<div>
+  <section>
+    <h2>Appareil identifié</h2>
+    <dl class="grid">
+      <dt>Port USB</dt><dd id="i-usb">—</dd>
+      <dt>Puce USB</dt><dd id="i-chip">—</dd>
+      <dt>Device</dt><dd id="i-device">—</dd>
+      <dt>SSID</dt><dd id="i-ssid">—</dd>
+      <dt>WiFi</dt><dd id="i-wifi">—</dd>
+      <dt>URL</dt><dd id="i-url">—</dd>
+      <dt>Fingerprint</dt><dd id="i-fp">—</dd>
+      <dt>POST</dt><dd id="i-post">—</dd>
+      <dt>Sleep</dt><dd id="i-sleep">—</dd>
+      <dt>Heap</dt><dd id="i-heap">—</dd>
+    </dl>
+    <div class="row" style="margin-top:10px">
+      <button data-cmd="STATUS" class="need-conn">Identifier / rafraîchir</button>
+      <button id="btnReset" class="need-conn danger" title="Pulse DTR/RTS pour redémarrer la carte">Reset carte</button>
+    </div>
+    <p class="hint">Les informations viennent de <code>STATUS</code>, <code>GET_*</code> et du port USB. Le firmware est en deep sleep : la carte n'écoute que quelques secondes après chaque envoi, d'où la PAUSE automatique.</p>
+  </section>
+
+  <section>
+    <h2>Commandes</h2>
+
+    <div class="group">
+      <h3>Cycle de vie</h3>
+      <div class="row">
+        <button data-cmd="PAUSE" class="need-conn">PAUSE</button>
+        <button data-cmd="RESUME" class="need-conn">RESUME</button>
+        <button data-cmd="HELP" class="need-conn">HELP</button>
+      </div>
+      <p class="hint">PAUSE : reste éveillé, plus d'envoi. RESUME : un envoi puis reprise du deep sleep.</p>
+    </div>
+
+    <div class="group">
+      <h3>Device</h3>
+      <div class="row">
+        <select id="deviceSel"></select>
+        <button id="btnSetDevice" class="need-conn">SET_DEVICE</button>
+      </div>
+      <div class="row">
+        <button data-cmd="GET_DEVICE" class="need-conn">GET_DEVICE</button>
+        <button data-cmd="LIST_VALID_DEVICES" class="need-conn">LIST_VALID_DEVICES</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>WiFi</h3>
+      <div class="row"><input id="ssid" placeholder="SSID (sans espace)" autocomplete="off"></div>
+      <div class="row">
+        <input id="pass" type="password" placeholder="Mot de passe" autocomplete="off">
+        <button id="btnShowPass" type="button" title="Afficher">👁</button>
+      </div>
+      <div class="row">
+        <button id="btnSetWifi" class="need-conn">SET_WIFI</button>
+        <button data-cmd="GET_WIFI" class="need-conn">GET_WIFI</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>URL de POST</h3>
+      <div class="row"><input id="url" placeholder="https://…" autocomplete="off"></div>
+      <div class="row">
+        <button id="btnSetUrl" class="need-conn">SET_URL</button>
+        <button data-cmd="GET_URL" class="need-conn">GET_URL</button>
+        <button data-cmd="RESET_URL" class="need-conn danger">RESET_URL</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Fingerprint TLS</h3>
+      <div class="row"><input id="fp" placeholder="AA:BB:CC:…" autocomplete="off"></div>
+      <div class="row">
+        <button id="btnSetFp" class="need-conn">SET_FINGERPRINT</button>
+        <button data-cmd="GET_FINGERPRINT" class="need-conn">GET_FINGERPRINT</button>
+        <button data-cmd="RESET_FINGERPRINT" class="need-conn danger">RESET_FINGERPRINT</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div>
+  <section>
+    <h2>Console série</h2>
+    <div id="term" aria-live="off"></div>
+    <form id="sendForm" class="row" style="margin-top:10px">
+      <input id="sendInput" placeholder="Commande à envoyer (↑/↓ pour l'historique)" autocomplete="off" disabled>
+      <button class="primary need-conn" disabled>Envoyer</button>
+      <button type="button" id="btnClear">Effacer</button>
+      <button type="button" id="btnSave">Exporter</button>
+    </form>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="autoscroll" checked> Défilement auto</label>
+      <label class="chk"><input type="checkbox" id="timestamps" checked> Horodatage</label>
+    </div>
+  </section>
+</div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  // Allow-list identique à VALID_DEVICE_NAMES dans serial_cmd.cpp (rafraîchie via LIST_VALID_DEVICES).
+  const DEFAULT_DEVICES = ['ESP8266-UNKNOWN','ESP8266','ESP8266-Salon','ESP8266-Loggia-Chambre','ESP8266-Test'];
+  const USB_CHIPS = {
+    '1a86:7523':'WCH CH340 (NodeMCU / clones)', '1a86:55d4':'WCH CH9102',
+    '10c4:ea60':'Silicon Labs CP2102/CP2104 (NodeMCU / Wemos)',
+    '0403:6001':'FTDI FT232R', '0403:6015':'FTDI FT231X', '2341:0043':'Arduino Uno', '303a:1001':'Espressif USB-JTAG',
+  };
+  const $ = id => document.getElementById(id);
+  const term = $('term');
+
+  let port = null, writer = null, reader = null, readLoopDone = null, closing = false;
+  let curLine = null, curText = '', pendingParse = '';
+  const logLines = [], history = []; let histIdx = -1;
+
+  if (!('serial' in navigator)) $('unsupported').style.display = 'block';
+
+  // ---------- Terminal ----------
+  const ts = () => new Date().toTimeString().slice(0,8);
+  function addLine(text, cls) {
+    const div = document.createElement('div');
+    if (cls) div.className = cls;
+    if ($('timestamps').checked) {
+      const s = document.createElement('span'); s.className = 'ts'; s.textContent = ts(); div.appendChild(s);
+    }
+    div.appendChild(document.createTextNode(text));
+    term.appendChild(div);
+    logLines.push(`${ts()} ${cls ? '['+cls+'] ' : ''}${text}`);
+    while (term.childElementCount > 3000) term.firstChild.remove();
+    if ($('autoscroll').checked) term.scrollTop = term.scrollHeight;
+    return div;
+  }
+  const sys = t => addLine(t, 'sys');
+
+  // Les lignes partielles (ex. "....") s'affichent en direct, puis sont figées au \n.
+  function onData(chunk) {
+    for (const ch of chunk) {
+      if (ch === '\r') continue;
+      if (ch === '\n') {
+        if (!curLine) addLine('');
+        else curLine = null;
+        parseLine(curText); curText = '';
+        continue;
+      }
+      curText += ch;
+      if (!curLine) { curLine = addLine(''); curLine._txt = document.createTextNode(''); curLine.appendChild(curLine._txt); }
+      curLine._txt.data = curText;
+    }
+    if ($('autoscroll').checked) term.scrollTop = term.scrollHeight;
+  }
+
+  // ---------- Parsing des réponses du firmware ----------
+  const FIELDS = [
+    [/^URL\s*:\s*(.*)$/, 'i-url'], [/^SSID\s*:\s*(.*)$/, 'i-ssid'], [/^Device\s*:\s*(.*)$/, 'i-device'],
+    [/^Fingerprint\s*:\s*(.*)$/, 'i-fp'], [/^WiFi\s*:\s*(.*)$/, 'i-wifi'], [/^POST\s*:\s*(.*)$/, 'i-post'],
+    [/^Sleep\s*:\s*(.*)$/, 'i-sleep'], [/^Heap\s*:\s*(.*)$/, 'i-heap'],
+  ];
+  let inDeviceList = false; const devicesSeen = [];
+  function parseLine(line) {
+    line = line.trim();
+    if (!line) { inDeviceList = false; return; }
+    if (line === 'Noms valides :') { inDeviceList = true; devicesSeen.length = 0; return; }
+    if (inDeviceList) {
+      if (/^\S+$/.test(line) && !/^(OK|ERR)/.test(line)) { devicesSeen.push(line); fillDevices(devicesSeen); return; }
+      inDeviceList = false;
+    }
+    for (const [re, id] of FIELDS) {
+      const m = line.match(re);
+      if (m) {
+        $(id).textContent = m[1] || '—';
+        if (id === 'i-url' && m[1]) $('url').value = m[1];
+        if (id === 'i-ssid' && m[1]) $('ssid').value = m[1];
+        if (id === 'i-fp' && m[1]) $('fp').value = m[1];
+        if (id === 'i-device' && m[1]) selectDevice(m[1]);
+        return;
+      }
+    }
+  }
+  function fillDevices(list) {
+    const cur = $('deviceSel').value;
+    $('deviceSel').replaceChildren(...list.map(n => new Option(n, n)));
+    if (list.includes(cur)) $('deviceSel').value = cur;
+  }
+  function selectDevice(name) {
+    if (![...$('deviceSel').options].some(o => o.value === name)) $('deviceSel').add(new Option(name, name));
+    $('deviceSel').value = name;
+  }
+  fillDevices(DEFAULT_DEVICES);
+
+  // ---------- Connexion ----------
+  function setState(connected) {
+    $('state').textContent = connected ? 'connecté' : 'déconnecté';
+    $('state').className = 'badge ' + (connected ? 'on' : 'off');
+    $('btnConnect').disabled = connected; $('btnDisconnect').disabled = !connected;
+    $('baud').disabled = connected; $('sendInput').disabled = !connected;
+    document.querySelectorAll('.need-conn').forEach(b => b.disabled = !connected);
+  }
+
+  function describePort(p) {
+    const { usbVendorId: v, usbProductId: pid } = p.getInfo();
+    if (v === undefined) return ['Port série (non-USB)', '—'];
+    const key = v.toString(16).padStart(4,'0') + ':' + pid.toString(16).padStart(4,'0');
+    return [key, USB_CHIPS[key] || 'Inconnu'];
+  }
+
+  async function connect() {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: +$('baud').value });
+    } catch (e) { if (e.name !== 'NotFoundError') sys('Connexion impossible : ' + e.message); port = null; return; }
+    closing = false;
+    const [usb, chip] = describePort(port);
+    $('i-usb').textContent = usb; $('i-chip').textContent = chip;
+    sys(`Connecté (${usb} – ${chip}) à ${$('baud').value} bauds`);
+    setState(true);
+
+    const enc = new TextEncoderStream();
+    enc.readable.pipeTo(port.writable).catch(() => {});
+    writer = enc.writable.getWriter();
+
+    readLoopDone = readLoop();
+    // Ouvrir le port reset généralement la carte (DTR) : PAUSE est mis en tampon
+    // et lu à l'ouverture de la fenêtre de configuration.
+    if ($('autoPause').checked) {
+      sys('PAUSE automatique + STATUS (la carte doit finir son cycle de boot, patientez quelques secondes)');
+      await send('PAUSE', true); await send('STATUS', true);
+    }
+  }
+
+  async function readLoop() {
+    const dec = new TextDecoderStream();
+    const piped = port.readable.pipeTo(dec.writable).catch(() => {});
+    reader = dec.readable.getReader();
+    try {
+      for (;;) { const { value, done } = await reader.read(); if (done) break; if (value) onData(value); }
+    } catch (e) { if (!closing) sys('Erreur de lecture : ' + e.message); }
+    finally { reader.releaseLock(); await piped; }
+    if (!closing) { sys('Port déconnecté'); await disconnect(true); }
+  }
+
+  async function disconnect(already) {
+    closing = true;
+    try { if (reader && !already) await reader.cancel(); } catch {}
+    try { if (readLoopDone && !already) await readLoopDone; } catch {}
+    try { if (writer) { await writer.close(); } } catch {}
+    try { if (port) await port.close(); } catch {}
+    writer = reader = port = null; curLine = null; curText = '';
+    setState(false); sys('Déconnecté');
+  }
+
+  async function send(cmd, silentFail, display) {
+    if (!writer) { if (!silentFail) sys('Non connecté'); return; }
+    addLine('> ' + (display ?? cmd), 'tx');
+    try { await writer.write(cmd + '\n'); } catch (e) { sys('Erreur d\'envoi : ' + e.message); }
+  }
+
+  // ---------- UI ----------
+  $('btnConnect').onclick = connect;
+  $('btnDisconnect').onclick = () => disconnect(false);
+  navigator.serial?.addEventListener('disconnect', e => { if (e.target === port) sys('Câble USB débranché'); });
+
+  document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => send(b.dataset.cmd));
+
+  function needValue(el, label) {
+    const v = el.value.trim();
+    if (!v) { sys('Renseignez : ' + label); el.focus(); return null; }
+    return v;
+  }
+  $('btnSetDevice').onclick = () => send('SET_DEVICE ' + $('deviceSel').value);
+  $('btnSetUrl').onclick = () => { const v = needValue($('url'), 'URL'); if (v) send('SET_URL ' + v); };
+  $('btnSetFp').onclick = () => { const v = needValue($('fp'), 'fingerprint'); if (v) send('SET_FINGERPRINT ' + v); };
+  $('btnSetWifi').onclick = () => {
+    const s = needValue($('ssid'), 'SSID'); if (!s) return;
+    if (/\s/.test(s)) { sys('Le firmware ne supporte pas les espaces dans le SSID (séparateur = 1er espace).'); return; }
+    const p = $('pass').value; if (!p) { sys('Renseignez : mot de passe'); $('pass').focus(); return; }
+    send(`SET_WIFI ${s} ${p}`, false, `SET_WIFI ${s} ${'•'.repeat(p.length)}`); // le mot de passe peut contenir des espaces
+  };
+  $('btnShowPass').onclick = () => { const i = $('pass'); i.type = i.type === 'password' ? 'text' : 'password'; };
+
+  $('btnReset').onclick = async () => {
+    if (!port) return;
+    try {
+      await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+      await new Promise(r => setTimeout(r, 100));
+      await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+      sys('Reset envoyé (RTS)');
+      if ($('autoPause').checked) { await send('PAUSE', true); await send('STATUS', true); }
+    } catch (e) { sys('Reset impossible : ' + e.message); }
+  };
+
+  $('sendForm').onsubmit = async e => {
+    e.preventDefault();
+    const v = $('sendInput').value.trim(); if (!v) return;
+    history.push(v); histIdx = history.length; $('sendInput').value = '';
+    await send(v);
+  };
+  $('sendInput').onkeydown = e => {
+    if (e.key === 'ArrowUp' && history.length) { histIdx = Math.max(0, histIdx - 1); $('sendInput').value = history[histIdx]; e.preventDefault(); }
+    if (e.key === 'ArrowDown' && history.length) {
+      histIdx = Math.min(history.length, histIdx + 1);
+      $('sendInput').value = history[histIdx] ?? ''; e.preventDefault();
+    }
+  };
+  $('btnClear').onclick = () => { term.replaceChildren(); logLines.length = 0; curLine = null; };
+  $('btnSave').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([logLines.join('\n')], { type: 'text/plain' }));
+    a.download = `meteo-serial-${Date.now()}.log`; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  setState(false);
+})();
+</script>
+</body>
+</html>
