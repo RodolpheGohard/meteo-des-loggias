@@ -79,10 +79,7 @@ static unsigned long gLastPostTime = 0;
 void sendData(const String& deviceName, float temperature1, float temperature2, float humidity, int luminosity)
 {
   WiFiClientSecure httpsClient; // Declare object of class WiFiClient
-  httpsClient.setInsecure();
-
-  Serial.printf("Using fingerprint '%s'\n", gConfig.fingerprint.c_str());
-  httpsClient.setFingerprint(gConfig.fingerprint.c_str());
+  httpsClient.setInsecure(); // pas de validation du certificat (pas de CA ni de fingerprint)
   httpsClient.setTimeout(15000); // 15 Seconds
   delay(1000);
 

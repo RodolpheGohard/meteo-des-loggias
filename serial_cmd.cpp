@@ -31,9 +31,6 @@ static void printHelp() {
     Serial.println(F("  GET_DEVICE               - affiche le nom du device"));
     Serial.println(F("  SET_DEVICE <name>        - change le nom (voir LIST_VALID_DEVICES)"));
     Serial.println(F("  LIST_VALID_DEVICES       - liste les noms valides"));
-    Serial.println(F("  GET_FINGERPRINT          - affiche le fingerprint TLS courant"));
-    Serial.println(F("  SET_FINGERPRINT <fp>     - sauvegarde le fingerprint en EEPROM"));
-    Serial.println(F("  RESET_FINGERPRINT        - remet le fingerprint par defaut"));
     Serial.println(F("  PAUSE                    - suspend l'envoi HTTP"));
     Serial.println(F("  RESUME                   - reprend l'envoi HTTP"));
     Serial.println(F("  STATUS                   - etat complet"));
@@ -117,26 +114,6 @@ void handleSerialCommands(AppConfig& cfg) {
         for (int i = 0; VALID_DEVICE_NAMES[i] != nullptr; i++) {
             Serial.print(F("  ")); Serial.println(VALID_DEVICE_NAMES[i]);
         }
-
-    } else if (line == F("GET_FINGERPRINT")) {
-        Serial.print(F("Fingerprint: "));
-        Serial.println(cfg.fingerprint);
-
-    } else if (line.startsWith(F("SET_FINGERPRINT "))) {
-        String fp = line.substring(16);
-        fp.trim();
-        if (fp.length() == 0 || fp.length() >= EEPROM_MAX_FP) {
-            Serial.println(F("ERR: fingerprint invalide (max 95 chars)"));
-            return;
-        }
-        saveFingerprint(fp);
-        cfg.fingerprint = fp;
-        Serial.println(F("OK: fingerprint sauvegarde"));
-
-    } else if (line == F("RESET_FINGERPRINT")) {
-        cfg.fingerprint = DEFAULT_CF_FINGERPRINT;
-        saveFingerprint(cfg.fingerprint);
-        Serial.println(F("OK: fingerprint remis par defaut"));
 
     } else if (line == F("PAUSE")) {
         gPaused = true;
