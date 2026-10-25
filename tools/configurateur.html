@@ -77,7 +77,6 @@
       <dt>SSID</dt><dd id="i-ssid">—</dd>
       <dt>WiFi</dt><dd id="i-wifi">—</dd>
       <dt>URL</dt><dd id="i-url">—</dd>
-      <dt>Fingerprint</dt><dd id="i-fp">—</dd>
       <dt>POST</dt><dd id="i-post">—</dd>
       <dt>Sleep</dt><dd id="i-sleep">—</dd>
       <dt>Heap</dt><dd id="i-heap">—</dd>
@@ -137,15 +136,6 @@
       </div>
     </div>
 
-    <div class="group">
-      <h3>Fingerprint TLS</h3>
-      <div class="row"><input id="fp" placeholder="AA:BB:CC:…" autocomplete="off"></div>
-      <div class="row">
-        <button id="btnSetFp" class="need-conn">SET_FINGERPRINT</button>
-        <button data-cmd="GET_FINGERPRINT" class="need-conn">GET_FINGERPRINT</button>
-        <button data-cmd="RESET_FINGERPRINT" class="need-conn danger">RESET_FINGERPRINT</button>
-      </div>
-    </div>
   </section>
 </div>
 
@@ -223,7 +213,7 @@
   // ---------- Parsing des réponses du firmware ----------
   const FIELDS = [
     [/^URL\s*:\s*(.*)$/, 'i-url'], [/^SSID\s*:\s*(.*)$/, 'i-ssid'], [/^Device\s*:\s*(.*)$/, 'i-device'],
-    [/^Fingerprint\s*:\s*(.*)$/, 'i-fp'], [/^WiFi\s*:\s*(.*)$/, 'i-wifi'], [/^POST\s*:\s*(.*)$/, 'i-post'],
+    [/^WiFi\s*:\s*(.*)$/, 'i-wifi'], [/^POST\s*:\s*(.*)$/, 'i-post'],
     [/^Sleep\s*:\s*(.*)$/, 'i-sleep'], [/^Heap\s*:\s*(.*)$/, 'i-heap'],
   ];
   let inDeviceList = false; const devicesSeen = [];
@@ -241,7 +231,6 @@
         $(id).textContent = m[1] || '—';
         if (id === 'i-url' && m[1]) $('url').value = m[1];
         if (id === 'i-ssid' && m[1]) $('ssid').value = m[1];
-        if (id === 'i-fp' && m[1]) $('fp').value = m[1];
         if (id === 'i-device' && m[1]) selectDevice(m[1]);
         return;
       }
@@ -339,7 +328,6 @@
   }
   $('btnSetDevice').onclick = () => send('SET_DEVICE ' + $('deviceSel').value);
   $('btnSetUrl').onclick = () => { const v = needValue($('url'), 'URL'); if (v) send('SET_URL ' + v); };
-  $('btnSetFp').onclick = () => { const v = needValue($('fp'), 'fingerprint'); if (v) send('SET_FINGERPRINT ' + v); };
   $('btnSetWifi').onclick = () => {
     const s = needValue($('ssid'), 'SSID'); if (!s) return;
     if (/\s/.test(s)) { sys('Le firmware ne supporte pas les espaces dans le SSID (séparateur = 1er espace).'); return; }
