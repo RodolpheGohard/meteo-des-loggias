@@ -17,9 +17,10 @@ const reply = (req, res) => {
   var spreadsheetId = '1PvxQRoCh0c4rG2plXJsRunFlUngoJd-w0GSecPsbqJI';
   var range = 'A1';
 
-  const row = requestBodyToRow(req.body)
-  
-  appendSheetRow(jwt, apiKey, spreadsheetId, range, row);
+  const requests = Array.isArray(req.body) ? req.body : [req.body];
+  const rows = requests.map(requestBodyToRow);
+
+  appendSheetRows(jwt, apiKey, spreadsheetId, range, rows);
   res.status(200).type('text/plain').end('OK');
 };
 exports.reply = reply;
@@ -37,11 +38,11 @@ function getJwt() {
 }
 
 function getApiKey() {
-  var apiKeyFile = require("./apikey.json");
+  var apiKeyFile = require("../apikey.json");
   return apiKeyFile.key;
 }
 
-function appendSheetRow(jwt, apiKey, spreadsheetId, range, row) {
+function appendSheetRows(jwt, apiKey, spreadsheetId, range, rows) {
   const sheets = google.sheets({version: 'v4'});
   sheets.spreadsheets.values.append({
     spreadsheetId: spreadsheetId,
@@ -49,7 +50,7 @@ function appendSheetRow(jwt, apiKey, spreadsheetId, range, row) {
     auth: jwt,
     key: apiKey,
     valueInputOption: 'RAW',
-    resource: {values: [row]}
+    resource: {values: rows}
   }, function(err, result) {
     if (err) {
       throw err;

@@ -1,0 +1,7 @@
+# Credentials GCP - ne jamais committer
+apikey.json
+meteo-des-loggias-*.json
+.env
+
+# IDE
+.vscode/
